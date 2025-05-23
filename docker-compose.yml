@@ -13,24 +13,24 @@ services:
     ports:
       - "5433:5432"
 
-  # web:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     args:
-  #       RUBY_VERSION: 3.1.4
-  #   container_name: rails_app
-  #   environment:
-  #     RAILS_ENV: production
-  #     DATABASE_URL: postgres://postgres:postgres@db:5432/myapp_production
-  #     RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}  # Asegúrate de pasarla en tu `.env` o en el entorno
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - .:/rails
-  #   command: ["./bin/rails", "server", "-b", "0.0.0.0"]
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RUBY_VERSION: 3.1.4
+    container_name: rails_app
+    environment:
+      RAILS_ENV: production
+      DATABASE_URL: postgres://postgres:postgres@db:5432/myapp_production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}  # Asegúrate de pasarla en tu `.env` o en el entorno
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    volumes:
+      - .:/rails
+    command: ["./bin/rails", "server", "-b", "0.0.0.0"]
 
 volumes:
   db_data:

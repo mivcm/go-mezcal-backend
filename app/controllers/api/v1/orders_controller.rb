@@ -54,7 +54,7 @@ class Api::V1::OrdersController < ApplicationController
     event = nil
     begin
       event = Stripe::Webhook.construct_event(
-        payload, sig_header, Rails.application.credentials.dig(:stripe, :webhook_secret)
+        payload, sig_header, ENV['STRIPE_WEBHOOK_SECRET']
       )
     rescue JSON::ParserError, Stripe::SignatureVerificationError
       return head :bad_request
