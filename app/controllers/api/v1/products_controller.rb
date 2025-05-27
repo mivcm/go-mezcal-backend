@@ -48,13 +48,13 @@ class Api::V1::ProductsController < ApplicationController
   private
 
   def set_product
-    @product = Product.find(params[:id])
+    @product = Product.includes(:reviews).find(params[:id])
   end
 
   def product_params
     params.require(:product).permit(
       :name, :slug, :category, :price, :description, :short_description,
-      :abv, :volume, :origin, :featured, :new, :rating,
+      :abv, :volume, :origin, :featured, :new, :rating, :stock,
       ingredients: [],
       images: []
     )
@@ -67,11 +67,13 @@ class Api::V1::ProductsController < ApplicationController
   end
 
   def product_json(product)
+    avg_rating = product.reviews.any? ? product.reviews.average(:rating).to_f.round(2) : nil
     product.as_json(
       except: [:created_at, :updated_at]
     ).merge(
       images: product.images.map { |img| url_for(img) },
-      reviews: product.reviews.map { |r| review_json(r) }
+      reviews: product.reviews.map { |r| review_json(r) },
+      rating: avg_rating
     )
   end
 

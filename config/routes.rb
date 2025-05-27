@@ -17,6 +17,17 @@ Rails.application.routes.draw do
       end
       get '/admin/orders', to: 'orders#admin_index'
       patch '/orders/:id/complete', to: 'orders#complete'
+      resource :cart, only: [:show] do
+        post 'add_item', to: 'carts#add_item'
+        delete 'remove_item', to: 'carts#remove_item'
+        post 'abandon', to: 'carts#abandon'
+        post 'convert_to_order', to: 'carts#convert_to_order'
+      end
+      get '/admin/carts/abandoned', to: 'carts#admin_abandoned'
+      get '/admin/stats/sales', to: 'stats#sales'
+      get '/admin/stats/abandoned_carts', to: 'stats#abandoned_carts'
+      get '/admin/stats/user_stats', to: 'stats#user_stats'
+      resources :blog_posts
     end
   end
 

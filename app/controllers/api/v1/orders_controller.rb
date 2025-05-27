@@ -20,7 +20,11 @@ class Api::V1::OrdersController < ApplicationController
       )
       params[:items].each do |item|
         product = Product.find(item[:product_id])
+        if product.stock.nil? || product.stock < item[:quantity].to_i
+          raise ActiveRecord::Rollback, "No hay suficiente stock para #{product.name}"
+        end
         order.order_items.create!(product: product, quantity: item[:quantity], price: product.price)
+        product.update!(stock: product.stock - item[:quantity].to_i)
       end
       session = Stripe::Checkout::Session.create(
         payment_method_types: ['card'],
@@ -76,6 +80,11 @@ class Api::V1::OrdersController < ApplicationController
     order = Order.find(params[:id])
     if current_user.admin?
       order.complete!
+      # Si la transacción está en pending, márcala como paid
+      transaction = order.transactions.order(created_at: :desc).first
+      if transaction && transaction.status == 'pending'
+        transaction.update(status: 'paid')
+      end
       render json: { order: order_json(order) }
     else
       render json: { error: 'No autorizado' }, status: :forbidden
@@ -99,7 +108,9 @@ class Api::V1::OrdersController < ApplicationController
       transaction_id: order.transactions.first&.id,
       items: order.order_items.map do |item|
         {
-          product: item.product.as_json(only: [:id, :name, :price]),
+          product: item.product.as_json(only: [:id, :name, :price]).merge(
+            images: item.product.images.map { |img| url_for(img) }
+          ),
           quantity: item.quantity,
           price: item.price
         }
