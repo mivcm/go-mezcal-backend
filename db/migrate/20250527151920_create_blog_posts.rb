@@ -9,7 +9,7 @@ class CreateBlogPosts < ActiveRecord::Migration[7.2]
       t.date :date
       t.string :category
       t.boolean :featured
-      t.string :tags
+      t.text :tags, array: true, default: []
 
       t.timestamps
     end

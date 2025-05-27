@@ -51,7 +51,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
     t.date "date"
     t.string "category"
     t.boolean "featured"
-    t.string "tags"
+    t.text "tags", default: [], array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
