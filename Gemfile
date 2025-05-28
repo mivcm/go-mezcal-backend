@@ -48,5 +48,5 @@ end
 
 
 
-gem "stripe", "~> 15.1"
+gem "stripe", "~> 15.2"
 gem 'dotenv-rails', '~> 2.1', '>= 2.1.1'
