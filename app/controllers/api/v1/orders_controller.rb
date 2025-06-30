@@ -21,7 +21,7 @@ class Api::V1::OrdersController < ApplicationController
       params[:items].each do |item|
         product = Product.find(item[:product_id])
         if product.stock.nil? || product.stock < item[:quantity].to_i
-          raise ActiveRecord::Rollback, "No hay suficiente stock para #{product.name}"
+          raise ActiveRecord::Rollback, "No hay suficiente stock para \\#{product.name}"
         end
         order.order_items.create!(product: product, quantity: item[:quantity], price: product.price)
         product.update!(stock: product.stock - item[:quantity].to_i)
@@ -39,8 +39,8 @@ class Api::V1::OrdersController < ApplicationController
           }
         end,
         mode: 'payment',
-        success_url: params[:success_url],
-        cancel_url: params[:cancel_url],
+        success_url: '/carrito',
+        cancel_url: '/carrito',
         metadata: { order_id: order.id }
       )
       order.update!(stripe_payment_id: session.id)

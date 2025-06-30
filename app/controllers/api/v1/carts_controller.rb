@@ -3,7 +3,11 @@ class Api::V1::CartsController < ApplicationController
   attr_reader :current_user
 
   def show
-    cart = current_user.carts.find_or_create_by(status: 'active')
+    cart = current_user.carts.where(status: ['active', 'abandoned']).order(created_at: :desc).first
+    if cart&.status == 'abandoned'
+      cart.update(status: 'active')
+    end
+    cart ||= current_user.carts.create(status: 'active')
     render json: cart_json(cart)
   end
 
@@ -25,7 +29,7 @@ class Api::V1::CartsController < ApplicationController
   end
 
   def abandon
-    cart = current_user.carts.find_by(status: 'active')
+    cart = Cart.find(params[:cart_id])
     if cart
       cart.update(status: 'abandoned')
       render json: { message: 'Carrito marcado como abandonado' }
@@ -46,7 +50,12 @@ class Api::V1::CartsController < ApplicationController
         status: 'pending'
       )
       cart.cart_items.each do |item|
-        order.order_items.create!(product: item.product, quantity: item.quantity, price: item.product.price)
+        product = item.product
+        if product.stock.nil? || product.stock < item.quantity
+          raise ActiveRecord::Rollback, "No hay suficiente stock para \\#{product.name}"
+        end
+        order.order_items.create!(product: product, quantity: item.quantity, price: product.price)
+        product.update!(stock: product.stock - item.quantity)
       end
       # Crear sesión de Stripe Checkout
       session = Stripe::Checkout::Session.create(
@@ -79,7 +88,7 @@ class Api::V1::CartsController < ApplicationController
   def admin_abandoned
     if current_user.admin?
       carts = Cart.abandoned.includes(:user, cart_items: :product)
-      render json: carts.map { |cart| cart_json(cart) }
+      render json: carts.map { |cart| cart_json(cart, include_user: true) }
     else
       render json: { error: 'No autorizado' }, status: :forbidden
     end
@@ -87,8 +96,8 @@ class Api::V1::CartsController < ApplicationController
 
   private
 
-  def cart_json(cart)
-    cart.as_json(only: [:id, :status, :created_at]).merge(
+  def cart_json(cart, include_user: false)
+    base = cart.as_json(only: [:id, :status, :created_at]).merge(
       items: cart.cart_items.map do |item|
         {
           product: item.product.as_json(only: [:id, :name, :price, :stock]).merge(
@@ -98,6 +107,10 @@ class Api::V1::CartsController < ApplicationController
         }
       end
     )
+    if include_user && cart.user
+      base[:user] = { email: cart.user.email }
+    end
+    base
   end
 
   include Rails.application.routes.url_helpers
