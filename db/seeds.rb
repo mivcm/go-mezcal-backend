@@ -25,7 +25,8 @@ image_urls = [
     ingredients: ["Agave espadín", "Agua", "Tiempo"],
     featured: [true, false].sample,
     new: [true, false].sample,
-    rating: rand(3.5..5.0).round(1)
+    rating: rand(3.5..5.0).round(1),
+    stock: rand(10..50)
   )
 
   image_url = image_urls[i % image_urls.length]

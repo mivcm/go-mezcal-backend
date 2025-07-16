@@ -2,6 +2,7 @@ class Api::V1::CartsController < ApplicationController
   before_action :authorize_request
   attr_reader :current_user
 
+
   def show
     cart = current_user.carts.where(status: ['active', 'abandoned']).order(created_at: :desc).first
     if cart&.status == 'abandoned'
@@ -41,45 +42,36 @@ class Api::V1::CartsController < ApplicationController
   def convert_to_order
     cart = current_user.carts.find_by(status: 'active')
     return render json: { error: 'Carrito no encontrado' }, status: :not_found unless cart
-    if cart.cart_items.empty?
-      return render json: { error: 'El carrito está vacío' }, status: :unprocessable_entity
-    end
+    return render json: { error: 'El carrito está vacío' }, status: :unprocessable_entity if cart.cart_items.empty?
+    
     ActiveRecord::Base.transaction do
       order = current_user.orders.create!(
         total: cart.cart_items.sum { |item| item.product.price * item.quantity },
         status: 'pending'
       )
+  
       cart.cart_items.each do |item|
         product = item.product
-        if product.stock.nil? || product.stock < item.quantity
-          raise ActiveRecord::Rollback, "No hay suficiente stock para \\#{product.name}"
-        end
+        raise ActiveRecord::Rollback, "No hay suficiente stock para #{product.name}" if product.stock.nil? || product.stock < item.quantity
+  
         order.order_items.create!(product: product, quantity: item.quantity, price: product.price)
         product.update!(stock: product.stock - item.quantity)
       end
-      # Crear sesión de Stripe Checkout
-      session = Stripe::Checkout::Session.create(
-        payment_method_types: ['card'],
-        line_items: order.order_items.map do |item|
-          {
-            price_data: {
-              currency: 'mxn',
-              product_data: { name: item.product.name },
-              unit_amount: (item.price * 100).to_i
-            },
-            quantity: item.quantity
-          }
-        end,
-        mode: 'payment',
-        success_url: params[:success_url] || 'http://localhost:3000/success',
-        cancel_url: params[:cancel_url] || 'http://localhost:3000/cancel',
-        metadata: { order_id: order.id }
+  
+      return_url = "#{params[:success_url] || 'http://localhost:3000/success'}?order_id=#{order.id}"
+      cancel_url = params[:cancel_url] || 'http://localhost:3000/cancel'
+  
+      paypal_order = PaypalService.create_order(cart, return_url, cancel_url)
+      order.update!(paypal_order_id: paypal_order.id)
+  
+      Transaction.create!(
+        order: order,
+        user: current_user,
+        amount: order.total,
+        status: 'pending',
+        paypal_order_id: paypal_order.id
       )
-      order.update!(stripe_payment_id: session.id)
-      Transaction.create!(order: order, user: current_user, amount: order.total, status: 'pending', stripe_payment_id: session.id)
-      cart.update!(status: 'converted')
-      cart.cart_items.destroy_all
-      render json: { checkout_url: session.url, order: order_json(order) }, status: :created
+      render json: paypal_order, status: :created
     end
   rescue => e
     render json: { error: e.message }, status: :unprocessable_entity

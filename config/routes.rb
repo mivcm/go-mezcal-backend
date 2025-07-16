@@ -10,9 +10,15 @@ Rails.application.routes.draw do
       post '/register', to: 'auth#register'
       post '/login', to: 'auth#login'
       get '/me', to: 'auth#me'
-      resources :orders, only: [:index, :show, :create]
+      resources :orders, only: [:index, :show, :create] do
+        post '/capture', to: 'orders#capture_paypal_order', on: :member
+      end
+      post '/orders/paypal/:paypal_order_id/capture', to: 'orders#capture_paypal_order'
       post '/stripe_webhook', to: 'orders#stripe_webhook'
       resources :products do
+        collection do
+          get 'featured', to: 'products#featured_products'
+        end
         resources :reviews, only: [:index, :create, :show, :update, :destroy]
       end
       get '/admin/orders', to: 'orders#admin_index'
@@ -27,6 +33,8 @@ Rails.application.routes.draw do
       get '/admin/stats/sales', to: 'stats#sales'
       get '/admin/stats/abandoned_carts', to: 'stats#abandoned_carts'
       get '/admin/stats/user_stats', to: 'stats#user_stats'
+      get '/site_settings/show_hero_image', to: 'site_settings#show_hero_image'
+      patch '/admin/site_settings/update_hero_image', to: 'site_settings#update_hero_image'
       resources :blog_posts
     end
   end

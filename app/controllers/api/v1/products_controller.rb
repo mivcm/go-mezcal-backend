@@ -45,6 +45,13 @@ class Api::V1::ProductsController < ApplicationController
     head :no_content
   end
 
+
+  def featured_products
+    products = Product.where(rating: 4.2..5).includes(:reviews, images_attachments: :blob)
+    render json: products.map { |p| product_json(p) }
+  end
+
+
   private
 
   def set_product
@@ -68,6 +75,9 @@ class Api::V1::ProductsController < ApplicationController
 
   def product_json(product)
     avg_rating = product.reviews.any? ? product.reviews.average(:rating).to_f.round(2) : nil
+    if avg_rating.nil?
+      avg_rating = product.rating
+    end
     product.as_json(
       except: [:created_at, :updated_at]
     ).merge(

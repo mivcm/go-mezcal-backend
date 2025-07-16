@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
+ActiveRecord::Schema[7.2].define(version: 2025_07_14_225722) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,9 +51,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
     t.date "date"
     t.string "category"
     t.boolean "featured"
-    t.text "tags", default: [], array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "tags", default: [], array: true
   end
 
   create_table "cart_items", force: :cascade do |t|
@@ -89,9 +89,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
     t.bigint "user_id", null: false
     t.decimal "total"
     t.string "status"
-    t.string "stripe_payment_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "paypal_order_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
@@ -126,6 +126,12 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
     t.index ["product_id"], name: "index_reviews_on_product_id"
   end
 
+  create_table "site_settings", force: :cascade do |t|
+    t.string "key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "transactions", force: :cascade do |t|
     t.bigint "order_id", null: false
     t.bigint "user_id", null: false
@@ -134,6 +140,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_27_151920) do
     t.string "stripe_payment_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "paypal_order_id"
     t.index ["order_id"], name: "index_transactions_on_order_id"
     t.index ["user_id"], name: "index_transactions_on_user_id"
   end

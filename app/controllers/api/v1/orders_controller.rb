@@ -2,7 +2,13 @@ class Api::V1::OrdersController < ApplicationController
   before_action :authorize_request
   attr_reader :current_user
 
+
   def index
+    if params[:orderId]
+      order = Order.find_by(paypal_order_id: params[:orderId])
+      return render json: order_json(order)
+    end
+
     orders = current_user.orders.includes(order_items: :product)
     render json: orders.map { |o| order_json(o) }
   end
@@ -74,6 +80,37 @@ class Api::V1::OrdersController < ApplicationController
       end
     end
     head :ok
+  end
+
+  def capture_paypal_order
+    # Get PayPal order ID from either params[:id] (for numeric order routes) or params[:paypal_order_id]
+    paypal_order_id = params[:paypal_order_id] || params[:id]
+    
+    # Find the active cart for the user
+    cart = current_user.carts.find_by(status: 'active')
+    
+    unless cart
+      render json: { error: 'No active cart found' }, status: :not_found
+      return
+    end
+
+    # Capture the PayPal order
+    capture_response = PaypalService.capture_order(paypal_order_id)
+
+    # Find transaction and order
+    transaction = Transaction.find_by(paypal_order_id: paypal_order_id)
+    order = transaction.order
+
+    transaction.update!(status: 'paid')
+    order.update!(status: 'paid')
+
+    # Clear the cart
+    cart.update!(status: 'converted')
+    cart.cart_items.destroy_all
+
+    render json: capture_response.data
+  rescue => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def complete

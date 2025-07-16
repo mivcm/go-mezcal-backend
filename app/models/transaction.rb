@@ -1,5 +1,5 @@
 class Transaction < ApplicationRecord
   belongs_to :order
   belongs_to :user
-  validates :amount, :status, :stripe_payment_id, presence: true
+  validates :amount, :status, :paypal_order_id, presence: true
 end
