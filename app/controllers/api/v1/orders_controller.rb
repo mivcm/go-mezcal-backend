@@ -137,6 +137,25 @@ class Api::V1::OrdersController < ApplicationController
     end
   end
 
+  def admin_show
+    if current_user.admin?
+      order = Order.find(params[:id])
+      render json: order_json(order)
+    else
+      render json: { error: 'No autorizado' }, status: :forbidden
+    end
+  end
+
+  def admin_update_status
+    if current_user.admin?
+      order = Order.find(params[:id])
+      order.update(status: params[:status])
+      render json: { order: order_json(order) }
+    else
+      render json: { error: 'No autorizado' }, status: :forbidden
+    end
+  end
+
   private
 
   def order_json(order)

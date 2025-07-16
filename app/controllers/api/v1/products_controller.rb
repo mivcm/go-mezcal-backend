@@ -1,6 +1,6 @@
 class Api::V1::ProductsController < ApplicationController
   before_action :set_product, only: %i[show update destroy]
-  before_action :authorize_admin, except: %i[index show]
+  before_action :authorize_admin, except: %i[index show high_rated_products]
 
 
   include Rails.application.routes.url_helpers
@@ -45,9 +45,20 @@ class Api::V1::ProductsController < ApplicationController
     head :no_content
   end
 
-
-  def featured_products
-    products = Product.where(rating: 4.2..5).includes(:reviews, images_attachments: :blob)
+  def high_rated_products
+    products = Product.includes(:reviews, images_attachments: :blob)
+                     .left_joins(:reviews)
+                     .group('products.id')
+                     .having(
+                       'CASE 
+                         WHEN COUNT(reviews.id) > 0 
+                         THEN AVG(reviews.rating) >= ? AND AVG(reviews.rating) <= ?
+                         ELSE products.rating >= ? AND products.rating <= ?
+                       END', 
+                       4.2, 5.0, 4.2, 5.0
+                     )
+                     .order(Arel.sql('COALESCE(AVG(reviews.rating), products.rating) DESC'))
+    
     render json: products.map { |p| product_json(p) }
   end
 
