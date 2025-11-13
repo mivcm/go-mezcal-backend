@@ -50,6 +50,6 @@ end
 
 gem "stripe", "~> 15.1"
 gem 'dotenv-rails', '~> 2.1', '>= 2.1.1'
-gem 'paypal-server-sdk', '~> 1.1'
+gem 'paypal-server-sdk', '~> 2.0'
 gem 'pry', '~> 0.15.0'
 gem 'cloudinary'
