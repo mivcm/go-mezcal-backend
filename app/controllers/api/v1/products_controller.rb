@@ -92,7 +92,7 @@ class Api::V1::ProductsController < ApplicationController
     product.as_json(
       except: [ :created_at, :updated_at ]
     ).merge(
-      images: product.images.map { |img| img.url },
+      images: product.images.attached? ? product.images.map { |img| img.url } : nil,
       reviews: product.reviews.map { |r| review_json(r) },
       rating: avg_rating
     )

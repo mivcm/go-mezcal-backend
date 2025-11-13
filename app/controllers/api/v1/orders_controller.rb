@@ -165,7 +165,7 @@ class Api::V1::OrdersController < ApplicationController
       items: order.order_items.map do |item|
         {
           product: item.product.as_json(only: [ :id, :name, :price ]).merge(
-            images: item.product.images.map { |img| img.url }
+            images: product.images.attached? ? product.images.map { |img| img.url } : nil
           ),
           quantity: item.quantity,
           price: item.price
