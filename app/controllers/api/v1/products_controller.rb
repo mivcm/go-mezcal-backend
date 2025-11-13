@@ -48,17 +48,17 @@ class Api::V1::ProductsController < ApplicationController
   def high_rated_products
     products = Product.includes(:reviews, images_attachments: :blob)
                      .left_joins(:reviews)
-                     .group('products.id')
+                     .group("products.id")
                      .having(
-                       'CASE 
-                         WHEN COUNT(reviews.id) > 0 
+                       'CASE
+                         WHEN COUNT(reviews.id) > 0
                          THEN AVG(reviews.rating) >= ? AND AVG(reviews.rating) <= ?
                          ELSE products.rating >= ? AND products.rating <= ?
-                       END', 
+                       END',
                        4.2, 5.0, 4.2, 5.0
                      )
-                     .order(Arel.sql('COALESCE(AVG(reviews.rating), products.rating) DESC'))
-    
+                     .order(Arel.sql("COALESCE(AVG(reviews.rating), products.rating) DESC"))
+
     render json: products.map { |p| product_json(p) }
   end
 
@@ -90,15 +90,15 @@ class Api::V1::ProductsController < ApplicationController
       avg_rating = product.rating
     end
     product.as_json(
-      except: [:created_at, :updated_at]
+      except: [ :created_at, :updated_at ]
     ).merge(
-      images: product.images.map { |img| url_for(img) },
+      images: product.images.map { |img| img.url },
       reviews: product.reviews.map { |r| review_json(r) },
       rating: avg_rating
     )
   end
 
   def review_json(review)
-    review.as_json(except: [:created_at, :updated_at, :product_id])
+    review.as_json(except: [ :created_at, :updated_at, :product_id ])
   end
 end
